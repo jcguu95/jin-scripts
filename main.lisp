@@ -1,8 +1,5 @@
 (in-package :jin-scripts)
 
-;; Use the following to build.
-;; ros run --non-interactive --load ~/.sbclrc --load build.lisp
-
 ;; TODO Expose an option to build and install from command line `cl` too.
 
 (defparameter *registered-commands*

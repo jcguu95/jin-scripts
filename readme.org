@@ -1,0 +1,13 @@
+* Jin's Scripts in Common Lisp
+
+To build the binary,
+
+#+begin_src sh
+ros run --non-interactive --load ~/.sbclrc --load build.lisp
+#+end_src
+
+To use the code,
+
+#+begin_src sh
+cl hello
+#+end_src
