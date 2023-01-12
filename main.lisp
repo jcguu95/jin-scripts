@@ -6,13 +6,18 @@
   `(("hello"       . ,#'hello-world)
     ("sha1-rename" . ,#'sha1-rename)))
 
+(unix-opts:define-opts
+    (:name :help
+     :description "Print this help text"
+     :short #\h
+     :long "help"))
+
 (defun generic-response (free-args options)
-  (format t "Unknown Operator :: ~s~%" (nth 0 free-args))
-  (format t "OPTIONS          :: ~%~{~3d: ~s~^~%~}"
+  (format t "OPTIONS   :: ~%~{~3d: ~s~^~%~}~%"
           (loop for i from 0 to (1- (length options))
                 collect i
                 collect (nth i options)))
-  (format t "FREE-ARGS        :: ~%~{~3d: ~s~^~%~}~%"
+  (format t "FREE-ARGS :: ~%~{~3d: ~s~^~%~}~%"
           (loop for i from 0 to (1- (length free-args))
                 collect i
                 collect (nth i free-args))))
@@ -25,15 +30,20 @@
   "Entry point for JIN-SCRIPTS."
   (multiple-value-bind (options free-args)
       (unix-opts:get-opts)
-    (if (and (getf options :help)       ; FIXME Broken.
-             (not free-args))
-        (unix-opts:describe
-         :prefix "A unified program to call JIN-SCRIPTS."
-         :args "WHOM")                  ; TODO What is this?
-        (let ((command (car free-args)))
-          (aif (assoc command *registered-commands* :test #'string=)
-               (let ((fn (cdr it)))
-                 (print-docstring fn)   ; TODO Only print this when -h is on.
-                 (funcall fn free-args options))
-               (generic-response free-args options)))))
+    (let ((help? (getf options :help)))
+      (if (and help? (not free-args))
+          (unix-opts:describe
+           :prefix "A unified program to call JIN-SCRIPTS."
+           :args "WHOM")                ; TODO What is this?
+          (let ((command (car free-args)))
+            (aif (assoc command *registered-commands* :test #'string=)
+                 (let ((fn (cdr it)))
+                   (if help?
+                       (progn
+                         (print-docstring fn)
+                         (generic-response free-args options))
+                       (funcall fn free-args options)))
+                 (progn
+                   (format t "Unknown Operator :: ~s~%" (nth 0 free-args))
+                   (generic-response free-args options)))))))
   (uiop:quit))
