@@ -42,3 +42,5 @@ its content after its name and before its ext."
     ;; TODO Test on directories
     (loop for path in paths do
       (rename-file-with-sha1 path))))
+
+;; TODO * CL script: hash checker , hash updater
