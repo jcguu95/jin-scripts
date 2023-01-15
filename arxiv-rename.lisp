@@ -17,9 +17,10 @@
                        (uiop:run-program cmd :output t :error-output t)))))
     (if (= code 0)
         (xmls:parse (uiop:read-file-string *arxiv-rename/tmp-file*))
-        (format t "wget returns nonzero. aborting.."))))
+        (error "wget returns nonzero for identifier: ~a~%" identifier))))
 
 (defun collect-xmls-nodes (node &optional result)
+  ;; e.g. (collect-xmls-nodes (get-arxiv-metadata "2208.04890"))
   "A utility function to collect the sub-nodes of NODE recursively."
   (let ((result (or result (make-hash-table :test #'equal))))
     (when (eq (type-of node) 'xmls:node)
@@ -47,9 +48,9 @@ Jin-Cheng Guu and Jiahao Hu]-[arXiv:2208.04890].pdf\""
                            (car (gethash "id"      xml-nodes)))))
          (title      (car (xmls:node-children
                            (car (gethash "title"   xml-nodes)))))
+         (title      (cl-ppcre::regex-replace-all "\\n" title " "))
          (authors    (car (xmls:node-children
                            (car (gethash "authors" xml-nodes)))))
-         ;; TODO Maybe add versions in filename.
          (new-name   (format nil "~a-\\[~a\\]-\\[arXiv:~a\\].~a" title authors id file-type)))
     (rename-file file-path new-name)))
 

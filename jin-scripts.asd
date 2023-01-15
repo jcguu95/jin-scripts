@@ -16,6 +16,7 @@
                "ironclad"
                "xmls"
                "babel"
+               "cl-ppcre"
                )
   :components ((:file "package")
                (:file "util")
