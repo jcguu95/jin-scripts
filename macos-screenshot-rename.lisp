@@ -15,6 +15,9 @@
 
 ;; TODO Make the program safer (e.g. backups, logs .. etc)
 
+;; TODO Compress screenshots with `sips`, `pngquant`, `png->jpeg`.
+
+
 (defun parse (input)
   "
 \"Screen Shot 2022-01-07 at 20.17.08 .png\"   -> (2022  1 7 20 17 8)
