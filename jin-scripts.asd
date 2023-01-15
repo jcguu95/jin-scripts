@@ -14,6 +14,7 @@
                "rutils"
                "unix-opts"
                "ironclad"
+               "xmls"
                "babel"
                )
   :components ((:file "package")
@@ -21,6 +22,7 @@
 
                (:file "hello")
                (:file "sha1-rename")
+               (:file "arxiv-rename")
                (:file "backup")
 
                (:file "main")))

@@ -5,9 +5,10 @@
 
 (defparameter *registered-commands*
   #h(equal
-     "hello"       #'hello-world
-     "sha1-rename" #'sha1-rename
-     "backup"      #'backup!))
+     "hello"        #'hello-world
+     "sha1-rename"  #'sha1-rename
+     "backup"       #'backup!
+     "arxiv-rename" #'arxiv-rename))
 
 (unix-opts:define-opts
     (:name :help
