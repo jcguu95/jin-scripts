@@ -24,6 +24,7 @@
                (:file "hello")
                (:file "sha1-rename")
                (:file "arxiv-rename")
+               (:file "macos-screenshot-rename")
                (:file "backup")
 
                (:file "main")))
