@@ -73,7 +73,7 @@
                ,(format nil "~a/~a/" *local-mount-point* *name*)
                ,(format nil "~a:~a/" *rclone-repo-name* *name*))))
     (nth 2 (multiple-value-list
-            (uiop:run-program cmd :output t :error-output t)))))
+            (uiop:run-program cmd :output t :error-output t :ignore-error-status t)))))
 
 (defun backup! (free-args options)
   "Main function."
