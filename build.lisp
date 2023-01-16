@@ -1,23 +1,26 @@
 (ql:quickload :jin-scripts)
 
-;; TODO Abstract the directory /Users/jin/.local/bin/
+(defparameter *target*
+  (merge-pathnames ".local/bin" (user-homedir-pathname)))
 
+;; Create a shell wrapper for each exposed command, a workaround
+;; to enable tab completion in shell.
 (let ((commands (alexandria:hash-table-keys
                  jin-scripts::*registered-commands*)))
   (loop for command in commands do
-    (let ((file-path (format nil "/Users/jin/.local/bin/cl.~a" command)))
+    (let ((file-path (format nil "~a/cl.~a" *target* command)))
       (with-open-file (file file-path
                             :direction :output
-                            :if-does-not-exist :create
-                            :if-exists :overwrite)
+                            :if-exists :overwrite ; can make it safer?
+                            :if-does-not-exist :create)
         (format file "#!/bin/bash~%~%")
         (format file "cl ~a \"$@\"~%~%" command)
         (format file "exit"))
       (uiop:run-program
-       (format nil "chmod 744 ~a" file-path)
+       (format nil "chmod +x ~a" file-path)
        :output t :error-output t))))
 
 (sb-ext:save-lisp-and-die
- "/Users/jin/.local/bin/cl"
+ (format nil "~a/cl" *target*)
  :toplevel 'jin-scripts:main
  :executable t)
