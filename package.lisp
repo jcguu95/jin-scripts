@@ -1,4 +1,5 @@
 (defpackage jin-scripts
   (:use #:cl
         #:rtl-user)
-  (:export #:main))
+  (:export #:main)
+  (:nicknames #:jin))

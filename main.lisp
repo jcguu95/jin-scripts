@@ -1,11 +1,19 @@
 (in-package :jin-scripts)
 (named-readtables:in-readtable rutils:rutils-readtable)
 
-;; TODO Expose an option to build and install from command line `cl` too.
+;; TODO Expose an option to build and install from command line
+;; `cl` too.
+;;
+;; TODO Move utililities to their own file.
+;;
+;; TODO Separate different facilities into their own packages and
+;; systems. If a system fails to load, skip it and emit a warning.
+;;
+;; TODO Understand how to use options.
 
 (defparameter *registered-commands*
   #h(equal
-     "hello"             #'hello-world
+     "hello"             #'jin.hello:main
      "sha1-rename"       #'sha1-rename
      "backup"            #'backup!
      "arxiv-rename"      #'arxiv-rename
@@ -84,8 +92,3 @@
   (or
    #+SBCL sb-ext:*posix-argv*
    #+LISPWORKS system:*line-arguments-list*))
-
-
-
-
-;; (ql:quickload :cl-git) ; not loading properly because of grovel on mac..

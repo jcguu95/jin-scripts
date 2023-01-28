@@ -1,4 +1,5 @@
-#-asdf3.1 (error "`jin' requires ASDF 3.1")
+#-asdf3.1 (error "`jin-scripts' requires ASDF 3.1")
+(declaim (optimize (debug 3) (safety 3)))
 
 (asdf:defsystem "jin-scripts"
   :description "Jin's Scripts"
@@ -17,11 +18,16 @@
                "xmls"
                "babel"
                "cl-ppcre"
+
+               ;;
+               "jin.dependencies"
+               "jin.hello"
+
                )
   :components ((:file "package")
                (:file "util")
 
-               (:file "hello")
+               ;; (:file "hello")
                (:file "sha1-rename")
                (:file "arxiv-rename")
                (:file "macos-screenshot-rename")

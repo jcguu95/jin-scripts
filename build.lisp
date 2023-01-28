@@ -1,5 +1,7 @@
 (ql:quickload :jin-scripts)
 
+(defparameter *main-program-name* "cl")
+
 (defparameter *target*
   (merge-pathnames ".local/bin" (user-homedir-pathname)))
 
@@ -8,19 +10,19 @@
 (let ((commands (alexandria:hash-table-keys
                  jin-scripts::*registered-commands*)))
   (loop for command in commands do
-    (let ((file-path (format nil "~a/cl.~a" *target* command)))
+    (let ((file-path (format nil "~a/~a.~a" *target* *main-program-name* command)))
       (with-open-file (file file-path
-                            :direction :output
-                            :if-exists :overwrite ; can make it safer?
+                            :direction         :output
+                            :if-exists         :overwrite ; can make it safer?
                             :if-does-not-exist :create)
         (format file "#!/bin/bash~%~%")
-        (format file "cl ~a \"$@\"~%~%" command)
+        (format file "~a ~a \"$@\"~%~%" *main-program-name* command)
         (format file "exit"))
       (uiop:run-program
        (format nil "chmod +x ~a" file-path)
        :output t :error-output t))))
 
 (sb-ext:save-lisp-and-die
- (format nil "~a/cl" *target*)
+ (format nil "~a/~a" *target* *main-program-name*)
  :toplevel 'jin-scripts:main
  :executable t)
