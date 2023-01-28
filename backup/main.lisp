@@ -85,7 +85,7 @@
     (if (equal result '(0 0 0))
         (setf message "success")
         (setf message (format nil "Something went wrong; code: ~a" result)))
-    (mac-notify! message :title "Automatic Backup (backup.lisp)")
+    (jin.macos-notification:mac-notify! message :title "Automatic Backup (backup.lisp)")
     result))
 
 (setf (fdefinition 'main) #'backup!)

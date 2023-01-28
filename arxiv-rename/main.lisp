@@ -63,4 +63,4 @@ Jin-Cheng Guu and Jiahao Hu]-[arXiv:2208.04890].pdf\""
   (loop for file-path in (cdr free-args) do
     (arxiv-rename-single file-path)))
 
-(setf (fdefinition 'main) arxiv-rename)
+(setf (fdefinition 'main) #'arxiv-rename)

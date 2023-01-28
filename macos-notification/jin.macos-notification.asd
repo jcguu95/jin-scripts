@@ -1,6 +1,5 @@
-(asdf:defsystem "jin.backup"
+(asdf:defsystem "jin.macos-notification"
   #+asdf-unicode :encoding #+asdf-unicode :utf-8
-  :depends-on ("jin.dependencies"
-               "jin.macos-notification")
+  :depends-on ("jin.dependencies")
   :components ((:file "package")
                (:file "main")))
