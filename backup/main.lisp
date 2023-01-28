@@ -1,4 +1,4 @@
-(in-package :jin-scripts)
+(in-package :jin.backup)
 
 ;; TODO split run-program output stream to stdout AND a file.
 
@@ -87,3 +87,5 @@
         (setf message (format nil "Something went wrong; code: ~a" result)))
     (mac-notify! message :title "Automatic Backup (backup.lisp)")
     result))
+
+(setf (fdefinition 'main) #'backup!)

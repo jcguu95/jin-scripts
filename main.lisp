@@ -15,7 +15,7 @@
   #h(equal
      "hello"             #'jin.hello:main
      "sha1-rename"       #'jin.sha1-rename:main
-     "backup"            #'backup!
+     "backup"            #'jin.backup:main
      "arxiv-rename"      #'arxiv-rename
      "screenshot-rename" #'screenshot-rename-main-fn))
 

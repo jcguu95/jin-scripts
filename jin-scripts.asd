@@ -16,9 +16,9 @@
                "jin.sha1-rename"
                "jin.arxiv-rename"
                "jin.macos-screenshot-rename"
+               "jin.backup"
                )
   :components ((:file "package")
                (:file "util")
-               (:file "backup")
 
                (:file "main")))
