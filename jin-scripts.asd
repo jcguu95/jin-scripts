@@ -9,25 +9,24 @@
   :properties ((#:author-email . "jcguu95@gmail.com"))
   #+asdf-unicode :encoding #+asdf-unicode :utf-8
   :depends-on (
-               "alexandria"
-               "local-time"
-               "log4cl"
+               ;; "alexandria"
+               ;; "local-time"
+               ;; "log4cl"
                "rutils"
-               "unix-opts"
-               "ironclad"
-               "xmls"
-               "babel"
-               "cl-ppcre"
-
+               ;; "unix-opts"
+               ;; "ironclad"
+               ;; "xmls"
+               ;; "babel"
+               ;; "cl-ppcre"
                ;;
                "jin.dependencies"
                "jin.hello"
+               ;; "jin.sha1-rename"
 
                )
   :components ((:file "package")
                (:file "util")
 
-               ;; (:file "hello")
                (:file "sha1-rename")
                (:file "arxiv-rename")
                (:file "macos-screenshot-rename")
