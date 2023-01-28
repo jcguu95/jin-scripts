@@ -1,4 +1,4 @@
-(in-package :jin-scripts)
+(in-package :jin.sha1-rename)
 
 (defun file-content-sha1 (file-path)
   (assert (probe-file file-path))
@@ -42,5 +42,7 @@ its content after its name and before its ext."
     ;; TODO Test on directories
     (loop for path in paths do
       (rename-file-with-sha1 path))))
+
+(setf (fdefinition 'main) #'sha1-rename)
 
 ;; TODO * CL script: hash checker , hash updater

@@ -14,7 +14,7 @@
 (defparameter *registered-commands*
   #h(equal
      "hello"             #'jin.hello:main
-     "sha1-rename"       #'sha1-rename
+     "sha1-rename"       #'jin.sha1-rename:main
      "backup"            #'backup!
      "arxiv-rename"      #'arxiv-rename
      "screenshot-rename" #'screenshot-rename-main-fn))
