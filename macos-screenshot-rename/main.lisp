@@ -1,4 +1,4 @@
-(in-package :jin-scripts)
+(in-package :jin.macos-screenshot-rename)
 
 ;; A typical screenshot in macos has its name in the format, for
 ;; example,

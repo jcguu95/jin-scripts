@@ -15,10 +15,10 @@
                "jin.hello"
                "jin.sha1-rename"
                "jin.arxiv-rename"
+               "jin.macos-screenshot-rename"
                )
   :components ((:file "package")
                (:file "util")
-               (:file "macos-screenshot-rename")
                (:file "backup")
 
                (:file "main")))
