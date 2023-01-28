@@ -16,8 +16,8 @@
      "hello"             #'jin.hello:main
      "sha1-rename"       #'jin.sha1-rename:main
      "backup"            #'jin.backup:main
-     "arxiv-rename"      #'arxiv-rename
-     "screenshot-rename" #'screenshot-rename-main-fn))
+     "arxiv-rename"      #'jin.arxiv-rename:main
+     "screenshot-rename" #'jin.screenshot-rename:main))
 
 (unix-opts:define-opts
     (:name :help

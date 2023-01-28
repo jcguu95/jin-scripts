@@ -71,6 +71,8 @@
     (loop for file in files do
       (screenshot-rename! file))))
 
+(setf (fdefinition 'main) #'screenshot-rename-main-fn)
+
 ;;; Tests
 
 (assert
