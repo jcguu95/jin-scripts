@@ -2,6 +2,10 @@
 
 ;; TODO split run-program output stream to stdout AND a file.
 
+;; TODO Implement handy #'borg-delete to be called in the repl
+;; without recalling the command.
+;; e.g. "borg delete ~/.backup/macbook-air-m2-2022/ guu.local-20230318-090000"
+
 (defparameter *name* "macbook-air-m2-2022")
 
 (defparameter *rclone-repo-name* "gdrive-sbu")
