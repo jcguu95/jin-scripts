@@ -5,11 +5,9 @@
   :description "Jin's Scripts"
   :author "Jin <jcguu95@gmail.com>"
   :licence "MIT"
-  :version "0.0"
   :properties ((#:author-email . "jcguu95@gmail.com"))
   #+asdf-unicode :encoding #+asdf-unicode :utf-8
-  :depends-on (
-               "rutils"
+  :depends-on ("rutils"
                ;;
                "jin.dependencies"
                "jin.hello"
