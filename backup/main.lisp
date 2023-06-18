@@ -13,6 +13,8 @@
 (defparameter *local-mount-point*
   (uiop:native-namestring "~/.backup"))
 
+(defparameter *repo* (format nil "~a/~a" *local-mount-point* *name*))
+
 (defparameter *exclude-dirs*
   (mapcar #'uiop:native-namestring
           `(,*local-mount-point*
@@ -25,9 +27,14 @@
             "~/Pictures"
             "~/Public"
             "~/.local"
-            "~/.cache"
             "~/.Trash"
+            "~/.dropbox"
             "~/.no-backup"
+
+            "~/.cache"
+            "~/.emacs.d/.local/cache"
+            "~/.+PLUGS/Dropbox/.dropbox.cache"
+
             "~/.+PLUGS/tilde-local/stow/zcy"
             "~/.+PLUGS/tilde-local/stow/to-watch")))
 
@@ -42,11 +49,8 @@
 
 (defun borg-create (comment exclude-dirs &key (timestamp (timestamp)))
   "Create deduplicated backups with borg."
-  (let* ((repo (format nil "~a/~a::~a-~a"
-                       *local-mount-point*
-                       *name*
-                       (uiop:hostname)
-                       timestamp))
+  (let* ((archive-name (format nil "~a-~a" (uiop:hostname) timestamp))
+         (archive (format nil "~a::~a" *repo* archive-name))
          (target (uiop:native-namestring "~/"))
          (cmd `("borg" "create"
                 "--info" "--json" "--show-rc"
@@ -55,30 +59,64 @@
                 ,@(loop for dir in exclude-dirs
                         collect "--exclude"
                         collect (format nil "~a/*" dir))
-                ,repo ,target)))
+                ,archive ,target)))
     (nth 2 (multiple-value-list
             (uiop:run-program cmd :output *standard-output*
                                   :error-output *error-output*
                                   :ignore-error-status t)))))
 
-(defun borg-prune (&key (hour 24) (day 7) (week 4) (month 1))
+(defun borg-prune (&key (second 2) (hour 24) (day 7) (week 4) (month 1))
   "Prune redundant borg archives."
+  ;; NOTE This won't size down the archive. Use `borg compact` for that.
   (let ((cmd `("borg" "prune"
                "--list" "--show-rc"
-               "--keep-hourly"  ,(format nil "~d" hour)
-               "--keep-daily"   ,(format nil "~d" day)
-               "--keep-weekly"  ,(format nil "~d" week)
-               "--keep-monthly" ,(format nil "~d" month)
-               ,(format nil "~a/~a" *local-mount-point* *name*))))
+               "--stats"
+               "--keep-secondly" ,(format nil "~d" second) ; keep 2 so we can print a sane borg diff later
+               "--keep-hourly"   ,(format nil "~d" hour)
+               "--keep-daily"    ,(format nil "~d" day)
+               "--keep-weekly"   ,(format nil "~d" week)
+               "--keep-monthly"  ,(format nil "~d" month)
+               ,*repo*)))
     (nth 2 (multiple-value-list
             (uiop:run-program cmd :output *standard-output*
                                   :error-output *error-output*
                                   :ignore-error-status t)))))
+
+;; TODO Make a series of info dumper.
+(defun borg-info (&key (last 1))
+  (uiop:run-program (format nil "borg info ~a --last ~a" *repo* last)
+                    :output *standard-output* :error *error-output* :ignore-error-status t))
+;; (borg-info)
+
+(defun borg-list ()
+  "List all archives in the borg repo *REPO*, from the latest to the oldest."
+  (reverse
+   (cl-ppcre:split
+    "\\n"
+    (with-output-to-string (stream)
+      (uiop:run-program (format nil "borg list --format {archive}{NL} ~a" *repo*)
+                        :output stream :error nil :ignore-error-status t)))))
+;; (borg-list)
+
+(defun borg-diff (&key (new 0) (old 1))
+  (let ((b-list (borg-list)))
+    (uiop:run-program (format nil "borg diff ~a::~a ~a"
+                              *repo*
+                              (nth old b-list)
+                              (nth new b-list))
+                      :output *standard-output*
+                      :error *error-output*
+                      :ignore-error-status t)))
+
+(defun borg-inspect ()
+  (borg-info)
+  (log:info (borg-list))
+  (borg-diff))
 
 (defun rclone-backup ()
   "Backup with rclone."
   (let ((cmd `("rclone" "--verbose" "sync"
-               ,(format nil "~a/~a/" *local-mount-point* *name*)
+               ,(format nil "~a/" *repo*)
                ,(format nil "~a:~a/" *rclone-repo-name* *name*))))
     (nth 2 (multiple-value-list
             (uiop:run-program cmd :output *standard-output*
@@ -124,7 +162,10 @@
           "Rclone error. Please read log."
           :title "Automatic Backup (backup.lisp)")
        (log:info "Aborting..")
-       (uiop:quit code)))))
+       (uiop:quit code))))
+
+  (log:info "Succeed! Printing borg diff..")
+  (borg-inspect))
 
 ;; Main function.
 (setf (fdefinition 'main) #'backup!)
