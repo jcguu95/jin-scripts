@@ -22,6 +22,8 @@
        (format nil "chmod +x ~a" file-path)
        :output t :error-output t))))
 
+(log:info t "Saving lisp and die..!~%")
+
 (sb-ext:save-lisp-and-die
  (format nil "~a/~a" *target* *main-program-name*)
  :toplevel 'jin-scripts:main

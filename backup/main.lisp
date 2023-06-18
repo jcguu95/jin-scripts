@@ -40,13 +40,13 @@
 
 ;;;
 
-(defun borg-create (comment exclude-dirs)
+(defun borg-create (comment exclude-dirs &key (timestamp (timestamp)))
   "Create deduplicated backups with borg."
   (let* ((repo (format nil "~a/~a::~a-~a"
                        *local-mount-point*
                        *name*
                        (uiop:hostname)
-                       (timestamp)))
+                       timestamp))
          (target (uiop:native-namestring "~/"))
          (cmd `("borg" "create"
                 "--info" "--json" "--show-rc"
@@ -57,7 +57,9 @@
                         collect (format nil "~a/*" dir))
                 ,repo ,target)))
     (nth 2 (multiple-value-list
-            (uiop:run-program cmd :output t :error-output t)))))
+            (uiop:run-program cmd :output *standard-output*
+                                  :error-output *error-output*
+                                  :ignore-error-status t)))))
 
 (defun borg-prune (&key (hour 24) (day 7) (week 4) (month 1))
   "Prune redundant borg archives."
@@ -69,7 +71,9 @@
                "--keep-monthly" ,(format nil "~d" month)
                ,(format nil "~a/~a" *local-mount-point* *name*))))
     (nth 2 (multiple-value-list
-            (uiop:run-program cmd :output t :error-output t)))))
+            (uiop:run-program cmd :output *standard-output*
+                                  :error-output *error-output*
+                                  :ignore-error-status t)))))
 
 (defun rclone-backup ()
   "Backup with rclone."
@@ -77,19 +81,50 @@
                ,(format nil "~a/~a/" *local-mount-point* *name*)
                ,(format nil "~a:~a/" *rclone-repo-name* *name*))))
     (nth 2 (multiple-value-list
-            (uiop:run-program cmd :output t :error-output t :ignore-error-status t)))))
+            (uiop:run-program cmd :output *standard-output*
+                                  :error-output *error-output*
+                                  :ignore-error-status t)))))
 
 (defun backup! (free-args options)
-  "Main function."
   (declare (ignore free-args options))
-  (let ((result `(,(borg-create "Automatic Backup" *exclude-dirs*)
-                  ,(borg-prune)
-                  ,(rclone-backup)))
-        (message))
-    (if (equal result '(0 0 0))
-        (setf message "success")
-        (setf message (format nil "Something went wrong; code: ~a" result)))
-    (jin.macos-notification:mac-notify! message :title "Automatic Backup (backup.lisp)")
-    result))
+  (let ((code (borg-create "Automatic Backup" *exclude-dirs* :timestamp (timestamp))))
+    (case code
+      (0 (jin.macos-notification:mac-notify!
+          "Borg archive created."
+          :title "Automatic Backup (backup.lisp)"))
+      (1 (jin.macos-notification:mac-notify!
+          "Warning during borg-create. Please read log."
+          :title "Automatic Backup (backup.lisp)"))
+      (t (jin.macos-notification:mac-notify!
+          "Error or killed during borg-create. Please read log."
+          :title "Automatic Backup (backup.lisp)")
+       (log:info "Aborting..")
+       (uiop:quit code))))
 
+  (let ((code (borg-prune)))
+    (case code
+      (0 (jin.macos-notification:mac-notify!
+          "Borg pruned."
+          :title "Automatic Backup (backup.lisp)"))
+      (1 (jin.macos-notification:mac-notify!
+          "Warning during #'borg-prune. Please read log."
+          :title "Automatic Backup (backup.lisp)"))
+      (t (jin.macos-notification:mac-notify!
+          "Error or killed during #'borg-prune. Please read log."
+          :title "Automatic Backup (backup.lisp)")
+       (log:info "Aborting..")
+       (uiop:quit code))))
+
+  (let ((code (rclone-backup)))
+    (case code
+      (0 (jin.macos-notification:mac-notify!
+          "Rclone pushed successfully!"
+          :title "Automatic Backup (backup.lisp)"))
+      (t (jin.macos-notification:mac-notify!
+          "Rclone error. Please read log."
+          :title "Automatic Backup (backup.lisp)")
+       (log:info "Aborting..")
+       (uiop:quit code)))))
+
+;; Main function.
 (setf (fdefinition 'main) #'backup!)

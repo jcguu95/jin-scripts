@@ -36,33 +36,62 @@
                 collect (nth i free-args))))
 
 (defun print-docstring (fn)
-  (format t "Docstring ::~%~a~%"
-          (or (documentation fn t) "")))
+  (let ((docstring (or (documentation fn t) "")))
+    (log:info docstring)))
+
+(defun build! ()
+  "Build jin-scripts."
+  (let ((cmd (format nil "ros run --non-interactive --load \"~a\" --load \"~a\""
+                     (merge-pathnames (pathname ".sbclrc")
+                                      (user-homedir-pathname))
+                     (merge-pathnames (pathname "build.lisp")
+                                      (asdf:system-source-directory "jin-scripts")))))
+    (format t cmd)
+    (uiop:run-program cmd :output *standard-output*
+                          :error-output *error-output*
+                          :ignore-error-status t)))
+
+
 
 (defun main ()
-  "Entry point for JIN-SCRIPTS."
-  (multiple-value-bind (options free-args)
-      (unix-opts:get-opts)
-    (let ((help? (getf options :help)))
-      (if (and help? (not free-args))
-          (unix-opts:describe
-           :prefix "A unified program to call JIN-SCRIPTS."
-           :args "WHOM")                ; TODO What is this?
-          (let ((command (car free-args)))
-            (aif (gethash command *registered-commands*)
-                 (let ((fn it))
-                   (if help?
-                       (progn
-                         (print-docstring fn)
-                         (generic-response free-args options))
-                       (funcall fn free-args options)))
-                 (progn
-                   (format t "Unknown Operator :: ~s~%" (nth 0 free-args))
-                   (generic-response free-args options)))))))
-  (uiop:quit))
+  "Entry point for JIN-SCRIPTS. The built binary should also start from here."
 
+  (let* ((dir #P"/tmp/")
+         (log-file   (merge-pathnames (pathname (format nil "cl.jin-scripts.log"))   dir))
+         (error-file (merge-pathnames (pathname (format nil "cl.jin-scripts.error")) dir)))
+    (with-open-file (log-stream log-file :direction :output :if-does-not-exist :create :if-exists :append)
+      (with-open-file (error-stream error-file :direction :output :if-does-not-exist :create :if-exists :append)
+        ;; Log everything from now on..
+        (let ((*standard-output* (make-broadcast-stream log-stream   *standard-output*))
+              (*error-output*    (make-broadcast-stream error-stream *error-output*)))
+          (log:config :info :stream *standard-output*)
+          (multiple-value-bind (options free-args)
+              (unix-opts:get-opts)
+            (let* ((help? (getf options :help))
+                   (system (asdf:find-system "jin-scripts"))
+                   (version (asdf:component-version system))
+                   (description (asdf::component-description system)))
+              (declare (ignorable system version description))
+              (format t "~%~%~%")
+              (log:info "Calling the main function..") ; FIXME this doesn't go into *standard-output*, so not logged..
+              (format t "System: ~a~%Version: ~a~%Description: ~a~%-------------------------------~%~%" system version description)
 
-
+              (if (and help? (not free-args))
+                  (unix-opts:describe
+                   :prefix "A unified program to call JIN-SCRIPTS."
+                   :args "WHOM")        ; TODO What is this?
+                  (let ((command (car free-args)))
+                    (aif (gethash command *registered-commands*)
+                         (let ((fn it))
+                           (if help?
+                               (progn
+                                 (print-docstring fn)
+                                 (generic-response free-args options))
+                               (funcall fn free-args options)))
+                         (progn
+                           (format t "Unknown Operator :: ~s~%" (nth 0 free-args))
+                           (generic-response free-args options)))))))
+          (uiop:quit))))))
 
 (defun current-lisp-argv ()
   "Tells me how this lisp was started."

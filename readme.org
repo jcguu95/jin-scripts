@@ -2,11 +2,11 @@
 
 To build the binary,
 
-#+begin_src sh
-$ ros run --non-interactive --load ~/.sbclrc --load build.lisp
+#+begin_src lisp
+(jin-scripts:build!)
 #+end_src
 
-To use the code,
+To use the code, for example,
 
 #+begin_src sh
 $ cl hello
