@@ -6,6 +6,12 @@
 ;; without recalling the command.
 ;; e.g. "borg delete ~/.backup/macbook-air-m2-2022/ guu.local-20230318-090000"
 
+;; Usage
+;;
+;; 1. Customize *name*, and run (uiop:run-program (format nil "borg init \"~a\"" *repo*)).
+;; 2. Setup rclone and the gdrive rclone repo with the correct name as *rclone-repo-name*.
+;; 3. Run main function.
+
 (defparameter *name* "macbook-air-m2-2022")
 
 (defparameter *rclone-repo-name* "gdrive-sbu")
@@ -49,6 +55,7 @@
 
 (defun borg-create (comment exclude-dirs &key (timestamp (timestamp)))
   "Create deduplicated backups with borg."
+  (log:info "Creating backup in borg..")
   (let* ((archive-name (format nil "~a-~a" (uiop:hostname) timestamp))
          (archive (format nil "~a::~a" *repo* archive-name))
          (target (uiop:native-namestring "~/"))
@@ -68,6 +75,7 @@
 (defun borg-prune (&key (second 2) (hour 24) (day 7) (week 4) (month 1))
   "Prune redundant borg archives."
   ;; NOTE This won't size down the archive. Use `borg compact` for that.
+  (log:info "Pruning in borg archive..")
   (let ((cmd `("borg" "prune"
                "--list" "--show-rc"
                "--stats"
@@ -115,9 +123,10 @@
 
 (defun rclone-backup ()
   "Backup with rclone."
+  (log:info "Backing up through rclone.")
   (let ((cmd `("rclone" "--verbose" "sync"
-               ,(format nil "~a/" *repo*)
-               ,(format nil "~a:~a/" *rclone-repo-name* *name*))))
+                        ,(format nil "~a/" *repo*)
+                        ,(format nil "~a:~a/" *rclone-repo-name* *name*))))
     (nth 2 (multiple-value-list
             (uiop:run-program cmd :output *standard-output*
                                   :error-output *error-output*
@@ -125,6 +134,7 @@
 
 (defun backup! (free-args options)
   (declare (ignore free-args options))
+
   (let ((code (borg-create "Automatic Backup" *exclude-dirs* :timestamp (timestamp))))
     (case code
       (0 (jin.macos-notification:mac-notify!
@@ -153,6 +163,9 @@
        (log:info "Aborting..")
        (uiop:quit code))))
 
+  (log:info "Printing borg diff.. before attempting to upload.")
+  (borg-inspect)
+
   (let ((code (rclone-backup)))
     (case code
       (0 (jin.macos-notification:mac-notify!
@@ -164,8 +177,7 @@
        (log:info "Aborting..")
        (uiop:quit code))))
 
-  (log:info "Succeed! Printing borg diff..")
-  (borg-inspect))
+  (log:info "Succeed!"))
 
 ;; Main function.
 (setf (fdefinition 'main) #'backup!)
