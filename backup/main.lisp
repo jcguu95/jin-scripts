@@ -56,6 +56,7 @@
 (defun borg-create (comment exclude-dirs &key (timestamp (timestamp)))
   "Create deduplicated backups with borg."
   (log:info "Creating backup in borg..")
+  (log:info exclude-dirs)
   (let* ((archive-name (format nil "~a-~a" (uiop:hostname) timestamp))
          (archive (format nil "~a::~a" *repo* archive-name))
          (target (uiop:native-namestring "~/"))
