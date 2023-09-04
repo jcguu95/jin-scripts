@@ -178,7 +178,7 @@
        (log:info "Aborting..")
        (uiop:quit code))))
 
-  (log:info "Succeed!"))
+  (log:info "Succeed! You may now quit the process."))
 
 ;; Main function.
 (setf (fdefinition 'main) #'backup!)
