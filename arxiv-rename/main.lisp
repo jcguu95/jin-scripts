@@ -5,7 +5,10 @@
 
 (defun get-arxiv-metadata (identifier)
   ;; e.g. (get-arxiv-metadata "2208.04890")
-  "E.g. identifier = \"2208.04890\"."
+  "E.g. identifier = \"2208.04890\" \"math---9912094\"."
+  ;; We do this replacement because in a UNIX system a file name cannot contain "/".
+  (setf identifier (cl-ppcre:regex-replace "---" identifier "/"))
+  ;; Start working.
   (let* ((cmd `("wget" "-O"
                 ,*arxiv-rename/tmp-file*
                 ,(format nil
@@ -41,7 +44,7 @@ $overline{mu},overline{partial}, partial, mu$-[Shamuel Auyeung,
 Jin-Cheng Guu and Jiahao Hu]-[arXiv:2208.04890].pdf\""
   (let* ((identifier (pathname-name file-path))
          ;; TODO Check identifier is legit.
-         (file-type  (pathname-type file-path))
+         (file-type  (or (pathname-type file-path) ""))
          (xml-nodes  (collect-xmls-nodes
                       (get-arxiv-metadata identifier)))
          (id         (car (xmls:node-children
@@ -51,7 +54,9 @@ Jin-Cheng Guu and Jiahao Hu]-[arXiv:2208.04890].pdf\""
          (title      (cl-ppcre::regex-replace-all "\\n" title " "))
          (authors    (car (xmls:node-children
                            (car (gethash "authors" xml-nodes)))))
-         (new-name   (format nil "~a-\\[~a\\]-\\[arXiv:~a\\].~a" title authors id file-type)))
+         (new-name   (format nil "~a-\\[~a\\]-\\[arXiv:~a\\].~a" title authors id file-type))
+         (new-name   (cl-ppcre:regex-replace-all "/" new-name "--")))
+    (log:info new-name)
     (rename-file file-path new-name)))
 
 ;; TODO Hmm.. I feel like each file should has its own main
