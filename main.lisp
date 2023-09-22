@@ -13,11 +13,12 @@
 
 (defparameter *registered-commands*
   #h(equal
-     "hello"             #'jin.hello:main
-     "sha1-rename"       #'jin.sha1-rename:main
-     "backup"            #'jin.backup:main
-     "arxiv-rename"      #'jin.arxiv-rename:main
-     "screenshot-rename" #'jin.macos-screenshot-rename:main))
+     "hello"              #'jin.hello:main
+     "sha1-rename"        #'jin.sha1-rename:main
+     "backup"             #'jin.backup:main
+     "arxiv-rename"       #'jin.arxiv-rename:main
+     "yazi-cache-cleaner" #'jin.yazi-cache-cleaner:main
+     "screenshot-rename"  #'jin.macos-screenshot-rename:main))
 
 (unix-opts:define-opts
     (:name :help

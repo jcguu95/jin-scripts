@@ -18,6 +18,7 @@
                  "jin.macos-screenshot-rename"
                  "jin.macos-notification"
                  "jin.backup"
+                 "jin.yazi-cache-cleaner"
                  )
     :components ((:file "package")
                  (:file "util")
