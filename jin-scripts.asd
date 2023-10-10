@@ -10,6 +10,9 @@
     #+asdf-unicode :encoding #+asdf-unicode :utf-8
     :depends-on ("rutils"
                  "log4cl"
+                 "fiveam"
+                 "iterate"
+                 "alexandria"
                  ;;
                  "jin.dependencies"
                  "jin.hello"
