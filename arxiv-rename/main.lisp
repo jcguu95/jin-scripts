@@ -7,6 +7,7 @@
   ;; e.g. (get-arxiv-metadata "2208.04890")
   "E.g. identifier = \"2208.04890\" \"math---9912094\"."
   ;; We do this replacement because in a UNIX system a file name cannot contain "/".
+  (log:info "Hint: old arxiv filenames should be in the format: math---9912094.")
   (setf identifier (cl-ppcre:regex-replace "---" identifier "/"))
   ;; Start working.
   (let* ((cmd `("wget" "-O"
