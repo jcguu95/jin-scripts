@@ -61,9 +61,9 @@
           (pathname-type file)))
 
 (defun screenshot-rename! (file)
-  (if (parse (pathname-name file))
+  (if (ignore-errors (parse (pathname-name file)))
       (rename-file file (new-name file))
-      (log:info "Skipped due to unexpected format: ~a~%" file)))
+      (log:info "Skip file due to unexpected format:~%  file = ~a~%" file)))
 
 (defun screenshot-rename-main-fn (free-args options)
   (declare (ignore options))
