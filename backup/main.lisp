@@ -36,6 +36,7 @@
             "~/.Trash"
             "~/.dropbox"
             "~/.no-backup"
+            "~/.python"
 
             "~/.cache"
             "~/.emacs.d/.local/cache"
