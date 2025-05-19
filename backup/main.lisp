@@ -14,7 +14,7 @@
 
 (defparameter *name* "macbook-air-m2-2022")
 
-(defparameter *rclone-repo-name* "gdrive-umass-amherst")
+(defparameter *rclone-repo-name* "gdrive-jcguu95")
 
 (defparameter *local-mount-point*
   (uiop:native-namestring "~/.backup"))
