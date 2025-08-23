@@ -69,6 +69,7 @@
                         collect "--exclude"
                         collect (format nil "~a/*" dir))
                 ,archive ,target)))
+    ;; TODO log the actual command to run as well
     (nth 2 (multiple-value-list
             (uiop:run-program cmd :output *standard-output*
                                   :error-output *error-output*
@@ -88,6 +89,7 @@
                "--keep-monthly"  ,(format nil "~d" month)
                "--keep-yearly"   ,(format nil "~d" year)
                ,*repo*)))
+    ;; TODO log the actual command to run as well
     (nth 2 (multiple-value-list
             (uiop:run-program cmd :output *standard-output*
                                   :error-output *error-output*
@@ -97,6 +99,7 @@
   "Compactify borg archive."
   (log:info "Compacting borg archive..")
   (let ((cmd `("borg" "compact" ,*repo*)))
+    ;; TODO log the actual command to run as well
     (nth 2 (multiple-value-list
             (uiop:run-program cmd :output *standard-output*
                                   :error-output *error-output*
@@ -139,6 +142,7 @@
   (let ((cmd `("rclone" "--verbose" "sync"
                         ,(format nil "~a/" *repo*)
                         ,(format nil "~a:~a/" *rclone-repo-name* *name*))))
+    ;; TODO log the actual command to run as well
     (nth 2 (multiple-value-list
             (uiop:run-program cmd :output *standard-output*
                                   :error-output *error-output*
