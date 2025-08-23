@@ -92,6 +92,15 @@
                                   :error-output *error-output*
                                   :ignore-error-status t)))))
 
+(defun borg-compact ()
+  "Compactify borg archive."
+  (log:info "Compacting borg archive..")
+  (let ((cmd `("borg" "compact" ,*repo*)))
+    (nth 2 (multiple-value-list
+            (uiop:run-program cmd :output *standard-output*
+                                  :error-output *error-output*
+                                  :ignore-error-status t)))))
+
 ;; TODO Make a series of info dumper.
 (defun borg-info (&key (last 1))
   (uiop:run-program (format nil "borg info ~a --last ~a" *repo* last)
@@ -164,6 +173,9 @@
           :title "Automatic Backup (backup.lisp)")
        (log:info "Aborting..")
        (uiop:quit code))))
+
+  ;; TODO Test this!
+  (borg-compact)
 
   (log:info "Printing borg diff.. before attempting to upload.")
   (borg-inspect)
