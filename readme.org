@@ -16,3 +16,7 @@ $ cl hello
 
 + [[https://atomized.org/blog/2020/07/06/common-lisp-in-practice/][Common Lisp in Practice - Atomized]]
 + [[https://stevelosh.com/blog/2021/03/small-common-lisp-cli-programs/][Writing Small CLI Programs in Common Lisp / Steve Losh]]
+
+** TODO
+
+1. Let the compiled binary tell me when it was compiled.
