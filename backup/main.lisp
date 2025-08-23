@@ -74,7 +74,7 @@
                                   :error-output *error-output*
                                   :ignore-error-status t)))))
 
-(defun borg-prune (&key (second 2) (hour 24) (day 7) (week 4) (month 1))
+(defun borg-prune (&key (second 2) (hour 24) (day 7) (week 4) (month 24) (year 5))
   "Prune redundant borg archives."
   ;; FIXME This won't size down the archive. Use `borg compact` for that.
   (log:info "Pruning in borg archive..")
@@ -86,6 +86,7 @@
                "--keep-daily"    ,(format nil "~d" day)
                "--keep-weekly"   ,(format nil "~d" week)
                "--keep-monthly"  ,(format nil "~d" month)
+               "--keep-yearly"   ,(format nil "~d" year)
                ,*repo*)))
     (nth 2 (multiple-value-list
             (uiop:run-program cmd :output *standard-output*
