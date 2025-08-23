@@ -76,7 +76,7 @@
 
 (defun borg-prune (&key (second 2) (hour 24) (day 7) (week 4) (month 1))
   "Prune redundant borg archives."
-  ;; NOTE This won't size down the archive. Use `borg compact` for that.
+  ;; FIXME This won't size down the archive. Use `borg compact` for that.
   (log:info "Pruning in borg archive..")
   (let ((cmd `("borg" "prune"
                "--list" "--show-rc"
