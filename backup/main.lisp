@@ -21,29 +21,34 @@
 
 (defparameter *repo* (format nil "~a/~a" *local-mount-point* *name*))
 
-(defparameter *exclude-dirs*
-  (mapcar #'uiop:native-namestring
-          `(,*local-mount-point*
-            "~/Desktop"
-            "~/Documents"
-            "~/Downloads"
-            "~/Library"
-            "~/Movies"
-            "~/Music"
-            "~/Pictures"
-            "~/Public"
-            "~/.local"
-            "~/.Trash"
-            "~/.dropbox"
-            "~/.no-backup"
-            "~/.python"
+(defparameter *exclude-entries*
+  (cons
+   (concatenate 'string (uiop:native-namestring "~/Desktop") "/Screenshot*")
+   (mapcar
+    #'(lambda (path-string)
+        (concatenate 'string path-string "/*"))
+    (mapcar #'uiop:native-namestring
+            `(,*local-mount-point*
+              ;; "~/Desktop"
+              "~/Documents"
+              "~/Downloads"
+              "~/Library"
+              "~/Movies"
+              "~/Music"
+              "~/Pictures"
+              "~/Public"
+              "~/.local"
+              "~/.Trash"
+              "~/.dropbox"
+              "~/.no-backup"
+              "~/.python"
 
-            "~/.cache"
-            "~/.emacs.d/.local/cache"
-            "~/.+PLUGS/Dropbox/.dropbox.cache"
+              "~/.cache"
+              "~/.emacs.d/.local/cache"
+              "~/.+PLUGS/Dropbox/.dropbox.cache"
 
-            "~/.+PLUGS/tilde-local/stow/zcy"
-            "~/.+PLUGS/tilde-local/stow/to-watch")))
+              "~/.+PLUGS/tilde-local/stow/zcy"
+              "~/.+PLUGS/tilde-local/stow/to-watch")))))
 
 ;;; Util
 
@@ -54,10 +59,10 @@
 
 ;;;
 
-(defun borg-create (comment exclude-dirs &key (timestamp (timestamp)))
+(defun borg-create (comment exclude-entries &key (timestamp (timestamp)))
   "Create deduplicated backups with borg."
   (log:info "Creating backup in borg..")
-  (log:info exclude-dirs)
+  (log:info exclude-entries)
   (let* ((archive-name (format nil "~a-~a" (uiop:hostname) timestamp))
          (archive (format nil "~a::~a" *repo* archive-name))
          (target (uiop:native-namestring "~/"))
@@ -65,11 +70,11 @@
                 "--info" "--json" "--show-rc"
                 "--progress" "--exclude-caches"
                 "--comment" ,(format nil "~a" comment)
-                ,@(loop for dir in exclude-dirs
+                ,@(loop for entry in exclude-entries
                         collect "--exclude"
-                        collect (format nil "~a/*" dir))
+                        collect (format nil "~a" entry))
                 ,archive ,target)))
-    ;; TODO log the actual command to run as well
+    (log:info cmd)
     (nth 2 (multiple-value-list
             (uiop:run-program cmd :output *standard-output*
                                   :error-output *error-output*
@@ -89,7 +94,7 @@
                "--keep-monthly"  ,(format nil "~d" month)
                "--keep-yearly"   ,(format nil "~d" year)
                ,*repo*)))
-    ;; TODO log the actual command to run as well
+    (log:info cmd)
     (nth 2 (multiple-value-list
             (uiop:run-program cmd :output *standard-output*
                                   :error-output *error-output*
@@ -142,7 +147,7 @@
   (let ((cmd `("rclone" "--verbose" "sync"
                         ,(format nil "~a/" *repo*)
                         ,(format nil "~a:~a/" *rclone-repo-name* *name*))))
-    ;; TODO log the actual command to run as well
+    (log:info cmd)
     (nth 2 (multiple-value-list
             (uiop:run-program cmd :output *standard-output*
                                   :error-output *error-output*
@@ -151,7 +156,7 @@
 (defun backup! (free-args options)
   (declare (ignore free-args options))
 
-  (let ((code (borg-create "Automatic Backup" *exclude-dirs* :timestamp (timestamp))))
+  (let ((code (borg-create "Automatic Backup" *exclude-entries* :timestamp (timestamp))))
     (case code
       (0 (jin.macos-notification:mac-notify!
           "Borg archive created."
@@ -179,7 +184,6 @@
        (log:info "Aborting..")
        (uiop:quit code))))
 
-  ;; TODO Test this!
   (borg-compact)
 
   (log:info "Printing borg diff.. before attempting to upload.")
