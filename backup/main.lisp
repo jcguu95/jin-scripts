@@ -11,7 +11,6 @@
 ;; 1. Customize *name*, and run (uiop:run-program (format nil "borg init \"~a\"" *repo*)).
 ;; 2. Setup rclone and the gdrive rclone repo with the correct name as *rclone-repo-name*.
 ;; 3. Run main function.
-
 (defparameter *name* "macbook-air-m2-2022")
 
 (defparameter *rclone-repo-name* "gdrive-jcguu95")

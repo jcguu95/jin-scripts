@@ -52,11 +52,8 @@
                           :error-output *error-output*
                           :ignore-error-status t)))
 
-
-
 (defun main ()
   "Entry point for JIN-SCRIPTS. The built binary should also start from here."
-
   (let* ((dir #P"/tmp/")
          (log-file   (merge-pathnames (pathname (format nil "cl.jin-scripts.log"))   dir))
          (error-file (merge-pathnames (pathname (format nil "cl.jin-scripts.error")) dir)))
@@ -66,6 +63,7 @@
         (let ((*standard-output* (make-broadcast-stream log-stream   *standard-output*))
               (*error-output*    (make-broadcast-stream error-stream *error-output*)))
           (log:config :info :stream *standard-output*)
+          (log:config :sane)            ; avoid duplicated message in terminal (has to be put after the previous config form)
           (multiple-value-bind (options free-args)
               (unix-opts:get-opts)
             (let* ((help? (getf options :help))
@@ -73,7 +71,7 @@
                    (version (asdf:component-version system))
                    (description (asdf::component-description system)))
               (declare (ignorable system version description))
-              (format t "~%~%~%")
+              (format t "~%~%")
               (log:info "Calling the main function..") ; FIXME this doesn't go into *standard-output*, so not logged..
               (format t "System: ~a~%Version: ~a~%Description: ~a~%-------------------------------~%~%" system version description)
 
