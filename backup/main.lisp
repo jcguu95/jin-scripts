@@ -212,12 +212,14 @@ except Exception as e:
       ;; Any other output, including "UNKNOWN" from Python or execution failure
       (t :UNKNOWN)))) 
 
+;; FIXME Assumes SBCL.
 (defun prompt-for-confirmation (prompt)
   "Prints a prompt and reads user input. Returns T if the user confirms (y/Y), 
    and NIL otherwise (default option is [N]). Assumes *query-io* is available."
   (format *query-io* "~A [y/N]: " prompt)
   (finish-output *query-io*)
-  (let ((input (read-line *query-io* nil "")))
+  (let ((input (sb-sys:with-deadline (:seconds 60)
+                 (read-line *query-io* nil ""))))
     (unless (string-equal input "")
       (char-equal (char input 0) #\y))))
 
