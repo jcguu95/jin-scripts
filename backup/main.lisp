@@ -140,17 +140,102 @@
   (log:info (borg-list))
   (borg-diff))
 
+;; FIXME This only works on macOS.
+(defun check-wifi-status ()
+  "Executes a Python script using CoreWLAN to reliably determine the current Wi-Fi status on macOS.
+   The Python subprocess handles the CoreWLAN dependency check.
+
+   Returns:
+     :HOTSPOT    - Connected to a Personal Hotspot.
+     :WIFI       - Connected to a standard Wi-Fi network.
+     :NOT-WIFI   - Not connected to any Wi-Fi network.
+     :NO-DEP     - The required Python package (pyobjc-framework-CoreWLAN) is missing.
+     :UNKNOWN    - The Python process failed to execute."
+  (let* (
+         (python-code
+           ;; The Python script is constructed as a single string.
+           ;; It uses try/except blocks to print UNKNOWN if the CoreWLAN package is missing.
+           "import sys
+try:
+    from CoreWLAN import CWInterface
+    
+    # Get the active Wi-Fi interface
+    interface = CWInterface.interface()
+    
+    if interface is None:
+        # Wi-Fi is likely disabled or the interface is not ready
+        print('NOT_WIFI')
+        sys.exit(0)
+
+    # Get the last network joined (None if disconnected)
+    network = interface.lastNetworkJoined()
+    
+    if network is None:
+        print('NOT_WIFI')
+    elif network.isPersonalHotspot():
+        print('HOTSPOT')
+    else:
+        print('WIFI')
+        
+except ImportError:
+    # Explicitly catch the missing dependency (pyobjc-framework-CoreWLAN)
+    print('NO_DEP')
+    
+except Exception as e:
+    # Catch any other runtime error during CoreWLAN access
+    # You might log 'e' here for debugging, but we return UNKNOWN as requested.
+    print('UNKNOWN')
+")
+         (result-string (handler-case
+                            ;; Run the Python interpreter and execute the code string
+                            ;; :ignore-error-status t prevents Lisp from crashing if Python exits non-zero
+                            (uiop:run-program
+                             (list "python3" "-c" python-code)
+                             :output :string
+                             :error-output :interactive
+                             :ignore-error-status t)
+                          ;; Catch failure to launch python3 itself (e.g., python3 not in PATH)
+                          (error (c)
+                            (format *error-output* "~&[Warning] Failed to execute python3: ~A~%" c)
+                            "UNKNOWN\n")))
+    
+         (cleaned-result (string-trim '(#\Newline #\Return #\Space) result-string)))
+
+    ;; Map the clean Python output string to the required Common Lisp keyword
+    (cond
+      ((string= cleaned-result "HOTSPOT") :HOTSPOT)
+      ((string= cleaned-result "WIFI") :WIFI)
+      ((string= cleaned-result "NOT_WIFI") :NOT-WIFI)
+      ((string= cleaned-result "NO_DEP")
+       (format *error-output* "[ERROR] Please consider installing the python package by `pip3 install pyobjc-framework-CoreWLAN`.")
+       :NO-DEP)
+      ;; Any other output, including "UNKNOWN" from Python or execution failure
+      (t :UNKNOWN)))) 
+
+(defun prompt-for-confirmation (prompt)
+  "Prints a prompt and reads user input. Returns T if the user confirms (y/Y), 
+   and NIL otherwise (default option is [N]). Assumes *query-io* is available."
+  (format *query-io* "~A [y/N]: " prompt)
+  (finish-output *query-io*)
+  (let ((input (read-line *query-io* nil "")))
+    (unless (string-equal input "")
+      (char-equal (char input 0) #\y))))
+
 (defun rclone-backup ()
   "Backup with rclone."
   (log:info "Backing up through rclone.")
-  (let ((cmd `("rclone" "--verbose" "sync"
-                        ,(format nil "~a/" *repo*)
-                        ,(format nil "~a:~a/" *rclone-repo-name* *name*))))
-    (log:info cmd)
-    (nth 2 (multiple-value-list
-            (uiop:run-program cmd :output *standard-output*
-                                  :error-output *error-output*
-                                  :ignore-error-status t)))))
+  (let ((wifi-status (check-wifi-status))
+        (cmd `("rclone" "--verbose" "sync"
+               ,(format nil "~a/" *repo*)
+               ,(format nil "~a:~a/" *rclone-repo-name* *name*))))
+    (log:info cmd wifi-status)
+    (if (or (eq wifi-status :WIFI)
+            (prompt-for-confirmation "Cannot detect WI-FI. Confirm to proceed backing up with rclone? "))
+        (nth 2 (multiple-value-list
+                (uiop:run-program cmd :output *standard-output*
+                                      :error-output *error-output*
+                                      :ignore-error-status t)))
+        (log:info "Skip backing up with rclone."))))
 
 (defun backup! (free-args options)
   (declare (ignore free-args options))
