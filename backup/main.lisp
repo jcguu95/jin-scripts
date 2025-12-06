@@ -2,15 +2,20 @@
 
 ;; TODO split run-program output stream to stdout AND a file.
 
-;; TODO Implement handy #'borg-delete to be called in the repl
-;; without recalling the command.
+;; TODO Implement handy #'borg-delete to be called in the repl without recalling the command.
 ;; e.g. "borg delete ~/.backup/macbook-air-m2-2022/ guu.local-20230318-090000"
+
+;; DONE Check wifi status. If wifi is down, ask for confirmation (with
+;; timeout) whether backing up via rclone to the internet.
+
+;; TODO Make it easy to inspect, delete, 'search in' older repos.
 
 ;; Usage
 ;;
 ;; 1. Customize *name*, and run (uiop:run-program (format nil "borg init \"~a\"" *repo*)).
 ;; 2. Setup rclone and the gdrive rclone repo with the correct name as *rclone-repo-name*.
 ;; 3. Run main function.
+
 (defparameter *name* "macbook-air-m2-2022")
 
 (defparameter *rclone-repo-name* "gdrive-jcguu95")
@@ -151,7 +156,7 @@
      :NOT-WIFI   - Not connected to any Wi-Fi network.
      :NO-DEP     - The required Python package (pyobjc-framework-CoreWLAN) is missing.
      :UNKNOWN    - The Python process failed to execute."
-  (let* (
+  (let* ((python-binary "python")
          (python-code
            ;; The Python script is constructed as a single string.
            ;; It uses try/except blocks to print UNKNOWN if the CoreWLAN package is missing.
@@ -190,23 +195,30 @@ except Exception as e:
                             ;; Run the Python interpreter and execute the code string
                             ;; :ignore-error-status t prevents Lisp from crashing if Python exits non-zero
                             (uiop:run-program
-                             (list "python3" "-c" python-code)
+                             (list python-binary "-c" python-code)
                              :output :string
                              :error-output :interactive
                              :ignore-error-status t)
-                          ;; Catch failure to launch python3 itself (e.g., python3 not in PATH)
+                          ;; Catch failure to launch python itself (e.g., python not in PATH)
                           (error (c)
-                            (format *error-output* "~&[Warning] Failed to execute python3: ~A~%" c)
+                            (format *error-output* "~&[Warning] Failed to execute ~a: ~A~%" python-binary c)
                             "UNKNOWN\n")))
-    
          (cleaned-result (string-trim '(#\Newline #\Return #\Space) result-string)))
-
+    (log:info "Using an external python library to check wifi status..")
+    (log:info (uiop:getenv "PATH"))
+    (log:info (uiop:run-program (list "which" python-binary)
+                                :output :string
+                                :error-output :interactive
+                                :ignore-error-status t))
     ;; Map the clean Python output string to the required Common Lisp keyword
     (cond
       ((string= cleaned-result "HOTSPOT") :HOTSPOT)
       ((string= cleaned-result "WIFI") :WIFI)
       ((string= cleaned-result "NOT_WIFI") :NOT-WIFI)
       ((string= cleaned-result "NO_DEP")
+       (jin.macos-notification:mac-notify!
+        "[ERROR] Wi-fi not detected. Please select option manually."
+        :title "Automatic Backup (backup.lisp)")
        (format *error-output* "[ERROR] Please consider installing the python package by `pip3 install pyobjc-framework-CoreWLAN`.")
        :NO-DEP)
       ;; Any other output, including "UNKNOWN" from Python or execution failure

@@ -42,7 +42,7 @@
 
 (defun build! ()
   "Build jin-scripts."
-  (let ((cmd (format nil "ros run --non-interactive --load \"~a\" --load \"~a\""
+  (let ((cmd (format nil "sbcl --non-interactive --load \"~a\" --load \"~a\""
                      (merge-pathnames (pathname ".sbclrc")
                                       (user-homedir-pathname))
                      (merge-pathnames (pathname "build.lisp")
