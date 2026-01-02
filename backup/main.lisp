@@ -26,8 +26,12 @@
 (defparameter *repo* (format nil "~a/~a" *local-mount-point* *name*))
 
 (defparameter *exclude-entries*
-  (cons
-   (concatenate 'string (uiop:native-namestring "~/Desktop") "/Screenshot*")
+  (append
+   '("*/.git/*"
+     "*/node_modules/*"
+     "*/__pycache__/*"
+     "*/.DS_Store")
+   (list (concatenate 'string (uiop:native-namestring "~/Desktop") "/Screenshot*"))
    (mapcar
     #'(lambda (path-string)
         (concatenate 'string path-string "/*"))
@@ -46,6 +50,8 @@
               "~/.dropbox"
               "~/.no-backup"
               "~/.python"
+              "~/.cargo"
+              "~/.npm"
 
               "~/.cache"
               "~/.emacs.d/.local/cache"
@@ -73,6 +79,7 @@
          (cmd `("borg" "create"
                 "--info" "--json" "--show-rc"
                 "--progress" "--exclude-caches"
+                "--exclude-if-present" ".nobackup"
                 "--comment" ,(format nil "~a" comment)
                 ,@(loop for entry in exclude-entries
                         collect "--exclude"
@@ -145,111 +152,116 @@
   (log:info (borg-list))
   (borg-diff))
 
-;; FIXME This only works on macOS.
-(defun check-wifi-status ()
-  "Executes a Python script using CoreWLAN to reliably determine the current Wi-Fi status on macOS.
-   The Python subprocess handles the CoreWLAN dependency check.
+;; ;; FIXME This only works on macOS.
+;; (defun check-wifi-status ()
+;;   "Executes a Python script using CoreWLAN to reliably determine the current Wi-Fi status on macOS.
+;;    The Python subprocess handles the CoreWLAN dependency check.
 
-   Returns:
-     :HOTSPOT    - Connected to a Personal Hotspot.
-     :WIFI       - Connected to a standard Wi-Fi network.
-     :NOT-WIFI   - Not connected to any Wi-Fi network.
-     :NO-DEP     - The required Python package (pyobjc-framework-CoreWLAN) is missing.
-     :UNKNOWN    - The Python process failed to execute."
-  (let* ((python-binary "python")
-         (python-code
-           ;; The Python script is constructed as a single string.
-           ;; It uses try/except blocks to print UNKNOWN if the CoreWLAN package is missing.
-           "import sys
-try:
-    from CoreWLAN import CWInterface
-    
-    # Get the active Wi-Fi interface
-    interface = CWInterface.interface()
-    
-    if interface is None:
-        # Wi-Fi is likely disabled or the interface is not ready
-        print('NOT_WIFI')
-        sys.exit(0)
+;;    Returns:
+;;      :HOTSPOT    - Connected to a Personal Hotspot.
+;;      :WIFI       - Connected to a standard Wi-Fi network.
+;;      :NOT-WIFI   - Not connected to any Wi-Fi network.
+;;      :NO-DEP     - The required Python package (pyobjc-framework-CoreWLAN) is missing.
+;;      :UNKNOWN    - The Python process failed to execute."
+;;   (let* ((python-binary "python")
+;;          (python-code
+;;            ;; The Python script is constructed as a single string.
+;;            ;; It uses try/except blocks to print UNKNOWN if the CoreWLAN package is missing.
+;;            "import sys
+;; try:
+;;     from CoreWLAN import CWInterface
 
-    # Get the last network joined (None if disconnected)
-    network = interface.lastNetworkJoined()
-    
-    if network is None:
-        print('NOT_WIFI')
-    elif network.isPersonalHotspot():
-        print('HOTSPOT')
-    else:
-        print('WIFI')
-        
-except ImportError:
-    # Explicitly catch the missing dependency (pyobjc-framework-CoreWLAN)
-    print('NO_DEP')
-    
-except Exception as e:
-    # Catch any other runtime error during CoreWLAN access
-    # You might log 'e' here for debugging, but we return UNKNOWN as requested.
-    print('UNKNOWN')
-")
-         (result-string (handler-case
-                            ;; Run the Python interpreter and execute the code string
-                            ;; :ignore-error-status t prevents Lisp from crashing if Python exits non-zero
-                            (uiop:run-program
-                             (list python-binary "-c" python-code)
-                             :output :string
-                             :error-output :interactive
-                             :ignore-error-status t)
-                          ;; Catch failure to launch python itself (e.g., python not in PATH)
-                          (error (c)
-                            (format *error-output* "~&[Warning] Failed to execute ~a: ~A~%" python-binary c)
-                            "UNKNOWN\n")))
-         (cleaned-result (string-trim '(#\Newline #\Return #\Space) result-string)))
-    (log:info "Using an external python library to check wifi status..")
-    (log:info (uiop:getenv "PATH"))
-    (log:info (uiop:run-program (list "which" python-binary)
-                                :output :string
-                                :error-output :interactive
-                                :ignore-error-status t))
-    ;; Map the clean Python output string to the required Common Lisp keyword
-    (cond
-      ((string= cleaned-result "HOTSPOT") :HOTSPOT)
-      ((string= cleaned-result "WIFI") :WIFI)
-      ((string= cleaned-result "NOT_WIFI") :NOT-WIFI)
-      ((string= cleaned-result "NO_DEP")
-       (jin.macos-notification:mac-notify!
-        "[ERROR] Wi-fi not detected. Please select option manually."
-        :title "Automatic Backup (backup.lisp)")
-       (format *error-output* "[ERROR] Please consider installing the python package by `pip3 install pyobjc-framework-CoreWLAN`.")
-       :NO-DEP)
-      ;; Any other output, including "UNKNOWN" from Python or execution failure
-      (t :UNKNOWN)))) 
+;;     # Get the active Wi-Fi interface
+;;     interface = CWInterface.interface()
 
-;; FIXME Assumes SBCL.
-(defun prompt-for-confirmation (prompt)
-  "Prints a prompt and reads user input. Returns T if the user confirms (y/Y), 
-   and NIL otherwise (default option is [N]). Assumes *query-io* is available."
-  (format *query-io* "~A [y/N]: " prompt)
-  (finish-output *query-io*)
-  (let ((input (sb-sys:with-deadline (:seconds 60)
-                 (read-line *query-io* nil ""))))
-    (unless (string-equal input "")
-      (char-equal (char input 0) #\y))))
+;;     if interface is None:
+;;         # Wi-Fi is likely disabled or the interface is not ready
+;;         print('NOT_WIFI')
+;;         sys.exit(0)
 
-(defun rclone-backup ()
-  "Backup with rclone."
-  (log:info "Backing up through rclone.")
-  (let ((wifi-status (check-wifi-status))
-        (cmd `("rclone" "--verbose" "sync"
+;;     # Get the last network joined (None if disconnected)
+;;     network = interface.lastNetworkJoined()
+
+;;     if network is None:
+;;         print('NOT_WIFI')
+;;     elif network.isPersonalHotspot():
+;;         print('HOTSPOT')
+;;     else:
+;;         print('WIFI')
+
+;; except ImportError:
+;;     # Explicitly catch the missing dependency (pyobjc-framework-CoreWLAN)
+;;     print('NO_DEP')
+
+;; except Exception as e:
+;;     # Catch any other runtime error during CoreWLAN access
+;;     # You might log 'e' here for debugging, but we return UNKNOWN as requested.
+;;     print('UNKNOWN')
+;; ")
+;;          (result-string (handler-case
+;;                             ;; Run the Python interpreter and execute the code string
+;;                             ;; :ignore-error-status t prevents Lisp from crashing if Python exits non-zero
+;;                             (uiop:run-program
+;;                              (list python-binary "-c" python-code)
+;;                              :output :string
+;;                              :error-output :interactive
+;;                              :ignore-error-status t)
+;;                           ;; Catch failure to launch python itself (e.g., python not in PATH)
+;;                           (error (c)
+;;                             (format *error-output* "~&[Warning] Failed to execute ~a: ~A~%" python-binary c)
+;;                             "UNKNOWN\n")))
+;;          (cleaned-result (string-trim '(#\Newline #\Return #\Space) result-string)))
+;;     (log:info "Using an external python library to check wifi status..")
+;;     (log:info (uiop:getenv "PATH"))
+;;     (log:info (uiop:run-program (list "which" python-binary)
+;;                                 :output :string
+;;                                 :error-output :interactive
+;;                                 :ignore-error-status t))
+;;     ;; Map the clean Python output string to the required Common Lisp keyword
+;;     (cond
+;;       ((string= cleaned-result "HOTSPOT") :HOTSPOT)
+;;       ((string= cleaned-result "WIFI") :WIFI)
+;;       ((string= cleaned-result "NOT_WIFI") :NOT-WIFI)
+;;       ((string= cleaned-result "NO_DEP")
+;;        ;; TODO Add printing python version and path for debugging.
+;;        (jin.macos-notification:mac-notify!
+;;         "[ERROR] Wi-fi not detected. Please select option manually."
+;;         :title "Automatic Backup (backup.lisp)")
+;;        (format *error-output* "[ERROR] Please consider installing the python package by `pip3 install pyobjc-framework-CoreWLAN`.")
+;;        :NO-DEP)
+;;       ;; Any other output, including "UNKNOWN" from Python or execution failure
+;;       (t :UNKNOWN))))
+
+;; ;; FIXME Assumes SBCL.
+;; (defun prompt-for-confirmation (prompt)
+;;   "Prints a prompt and reads user input. Returns T if the user confirms (y/Y),
+;;    and NIL otherwise (default option is [N]). Assumes *query-io* is available."
+;;   (format *query-io* "~A [y/N]: " prompt)
+;;   (finish-output *query-io*)
+;;   (let ((input (sb-sys:with-deadline (:seconds 60)
+;;                  (read-line *query-io* nil ""))))
+;;     (unless (string-equal input "")
+;;       (char-equal (char input 0) #\y))))
+
+(defun cmd/rclone-backup ()
+  (let ((cmd `("rclone" "--verbose" "sync"
                ,(format nil "~a/" *repo*)
                ,(format nil "~a:~a/" *rclone-repo-name* *name*))))
-    (log:info cmd wifi-status)
-    (if (or (eq wifi-status :WIFI)
-            (prompt-for-confirmation "Cannot detect WI-FI. Confirm to proceed backing up with rclone? "))
-        (nth 2 (multiple-value-list
-                (uiop:run-program cmd :output *standard-output*
-                                      :error-output *error-output*
-                                      :ignore-error-status t)))
-        (log:info "Skip backing up with rclone."))))
+    cmd))
+
+;; (defun rclone-backup ()
+;;   "Backup with rclone."
+;;   (log:info "Backing up through rclone.")
+;;   (let ((wifi-status (check-wifi-status))
+;;         (cmd (cmd/rclone-backup)))
+;;     (log:info cmd wifi-status)
+;;     (if (or (eq wifi-status :WIFI)
+;;             (prompt-for-confirmation "Cannot detect WI-FI. Confirm to proceed backing up with rclone? "))
+;;         (nth 2 (multiple-value-list
+;;                 (uiop:run-program cmd :output *standard-output*
+;;                                   :error-output *error-output*
+;;                                   :ignore-error-status t)))
+;;       (log:info "Skip backing up with rclone."))))
 
 (defun backup! (free-args options)
   (declare (ignore free-args options))
@@ -287,18 +299,22 @@ except Exception as e:
   (log:info "Printing borg diff.. before attempting to upload.")
   (borg-inspect)
 
-  (let ((code (rclone-backup)))
-    (case code
-      (0 (jin.macos-notification:mac-notify!
-          "Rclone pushed successfully!"
-          :title "Automatic Backup (backup.lisp)"))
-      (t (jin.macos-notification:mac-notify!
-          "Rclone error. Please read log."
-          :title "Automatic Backup (backup.lisp)")
-       (log:info "Aborting..")
-       (uiop:quit code))))
+  (log:info "Backup is done. To push the change to cloud, run the following command manually.")
+  (format t "[command]: ~{~a ~}~%" (cmd/rclone-backup))
 
-  (log:info "Succeed! You may now quit the process."))
+  ;; (let ((code (rclone-backup)))
+  ;;   (case code
+  ;;     (0 (jin.macos-notification:mac-notify!
+  ;;         "Rclone pushed successfully!"
+  ;;         :title "Automatic Backup (backup.lisp)"))
+  ;;     (t (jin.macos-notification:mac-notify!
+  ;;         "Rclone error. Please read log."
+  ;;         :title "Automatic Backup (backup.lisp)")
+  ;;        (log:info "Aborting..")
+  ;;        (uiop:quit code))))
+
+  ;; (log:info "Succeed! You may now quit the process.")
+  )
 
 ;; Main function.
 (setf (fdefinition 'main) #'backup!)
